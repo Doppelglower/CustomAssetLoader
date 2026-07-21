@@ -1,0 +1,18 @@
+{
+  "overrides": [
+    {
+      "label": "SD_Personality",
+      "resourceId": "10805_Ishmeal_FairyAppearance",
+      "bundle": "__data",
+      "assetPath": "Assets/Resources_moved/Prefab/SD/Personality/10805_Ishmeal_FairyAppearance.prefab",
+      "assetType": "GameObject"
+    },
+    {
+      "label": "SkillIcon",
+      "resourceId": "1080501",
+      "bundle": "__data",
+      "assetPath": "Assets/Resources_moved/Sprite/SkillIcon/1080501.png",
+      "assetType": "Sprite"
+    }
+  ]
+}
