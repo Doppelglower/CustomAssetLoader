@@ -15,10 +15,11 @@ public sealed class Plugin : BasePlugin
     public override void Load()
     {
         Log = base.Log;
-        BundleLog.Startup($"{PLUGIN_NAME} v{VERSION} loaded.");
 
         var harmony = new Harmony(GUID);
         BundlePatches.Apply(harmony);
         CustomBundleMotionPatches.Apply(harmony);
+
+        BundleLog.Loaded($"{PLUGIN_NAME} v{VERSION} loaded.");
     }
 }

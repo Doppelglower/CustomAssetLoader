@@ -19,6 +19,9 @@ public static class BundlePatches
             typeof(AddressableManager),
             nameof(AddressableManager.AssetExists),
             new[] { typeof(Il2CppSystem.Object) });
+        MethodInfo loadUserDataAndSetScene = AccessTools.Method(
+            typeof(GlobalGameManager),
+            nameof(GlobalGameManager.LoadUserDataAndSetScene));
         MethodInfo changePhaseAppearance = AccessTools.Method(
             typeof(BattleUnitView),
             nameof(BattleUnitView.ChangePhaseAppearance),
@@ -88,6 +91,17 @@ public static class BundlePatches
                 postfix: new HarmonyMethod(typeof(BundlePatches), nameof(Postfix_GetIsInitializedAddressable)));
         }
 
+        if (loadUserDataAndSetScene != null)
+        {
+            harmony.Patch(
+                loadUserDataAndSetScene,
+                postfix: new HarmonyMethod(typeof(BundlePatches), nameof(Postfix_LoadUserDataAndSetScene)));
+        }
+        else
+        {
+            BundleLog.Error("Bundle patch target missing: GlobalGameManager.LoadUserDataAndSetScene");
+        }
+
         if (changePhaseAppearance != null)
         {
             harmony.Patch(
@@ -144,9 +158,16 @@ public static class BundlePatches
         // share one native body, so patching the <Sprite> instantiation corrupts every other T
         // (observed: DUI TextAsset loads re-typed to Sprite → InvalidKeyException).
         // Sprite loading is served natively via BundleManager's locator + ModAssetProvider.
-
-        BundleManager.Initialize();
+        //
+        // Full reload at plugin load (covers the window before LoadUserDataAndSetScene),
+        // and again from LoadUserDataAndSetScene postfix (first load + Lethe hot reload).
+        BundleManager.RequestReload();
         BundleLog.Verbose($"Bundle patches applied. Overrides: {BundleManager.OverrideCount}");
+    }
+
+    public static void Postfix_LoadUserDataAndSetScene()
+    {
+        BundleManager.RequestReload();
     }
 
     public static void Prefix_EnsureCatalog()

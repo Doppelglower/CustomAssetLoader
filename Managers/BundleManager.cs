@@ -23,34 +23,102 @@ public static class BundleManager
     private static readonly Dictionary<string, BundleOverrideEntry> KeyMap = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, IResourceLocation> LocationByKey = new(StringComparer.OrdinalIgnoreCase);
 
-    private static bool _initialized;
+    private static bool _reloadRequested;
     private static bool _instanceTagRegistered;
     private static bool _addressablesRegistered;
-    private static bool _insideReadyGateRegistration;
+    /// <summary>
+    /// Guards the whole ready-gate critical section (pending reload + catalog register + warmup).
+    /// Nested calls from Addressables APIs that re-enter <c>IsInitializedAddressable</c> must no-op.
+    /// </summary>
+    private static bool _insideReadyGateCriticalSection;
     private static ModAssetProvider _provider;
     private static ResourceLocationMap _locator;
 
     public static int OverrideCount => OverrideMap.Count;
 
-    public static void Initialize()
+    /// <summary>
+    /// Request a full manifest/bundle reload, then register the Addressables catalog when ready.
+    /// Used at plugin load (pre-<c>LoadUserDataAndSetScene</c> window) and from that method's postfix
+    /// (first load + Lethe hot reload).
+    /// </summary>
+    public static void RequestReload()
     {
-        if (_initialized)
+        _reloadRequested = true;
+        BundleLog.Verbose("Bundle reload requested.");
+        // Kick processing without reading IsInitializedAddressable (avoids getter re-entry games).
+        TryProcessReloadAndRegister();
+    }
+
+    /// <summary>
+    /// Called from <c>get_IsInitializedAddressable</c> when the native flag is already true.
+    /// Must not re-enter that getter (critical-section guard; never reads the property here).
+    /// </summary>
+    public static void EnsureAddressablesRegisteredFromReadyGate()
+    {
+        TryProcessReloadAndRegister();
+    }
+
+    private static void TryProcessReloadAndRegister()
+    {
+        if (_insideReadyGateCriticalSection)
         {
             return;
         }
 
+        _insideReadyGateCriticalSection = true;
+        try
+        {
+            if (_reloadRequested)
+            {
+                PerformFullReload();
+                _reloadRequested = false;
+            }
+
+            if (OverrideMap.Count == 0)
+            {
+                return;
+            }
+
+            AddressableManager manager = AddressableManager.Instance;
+            if (manager == null || manager._hashKeys == null)
+            {
+                return;
+            }
+
+            if (_addressablesRegistered && IsCatalogHealthy(manager))
+            {
+                return;
+            }
+
+            RegisterWithAddressablesCore(manager);
+        }
+        finally
+        {
+            _insideReadyGateCriticalSection = false;
+        }
+    }
+
+    /// <summary>
+    /// Unload previous mod bundles, clear maps/locator state, rescan manifests, preload bundles.
+    /// Does not register Addressables; caller does that when the manager is ready.
+    /// </summary>
+    private static void PerformFullReload()
+    {
         EnsureInstanceTagRegistered();
+        UnloadLoadedModBundles();
+        RemoveManagedLocator();
+
         OverrideMap.Clear();
         OverrideBundleDirectory.Clear();
-        LoadedBundles.Clear();
         KeyMap.Clear();
         LocationByKey.Clear();
+        _addressablesRegistered = false;
+        _nativePipelineWarmedUp = false;
 
         string modsRoot = Path.Combine(Paths.PluginPath, MODS_ROOT);
         if (!Directory.Exists(modsRoot))
         {
             BundleLog.Verbose($"Mods root not found: {modsRoot}");
-            _initialized = true;
             return;
         }
 
@@ -75,73 +143,51 @@ public static class BundleManager
         else if (OverrideMap.Count > 0)
         {
             BundleLog.Verbose(
-                $"Registered {OverrideMap.Count} bundle override(s) from {manifestCount} manifest(s).");
+                $"Reloaded {OverrideMap.Count} bundle override(s) from {manifestCount} manifest(s).");
             PreloadOverrideBundles();
-            if (BundleLog.VerboseLog)
-            {
-                RunSpriteSelfTest();
-            }
         }
-
-        _initialized = true;
     }
 
-    /// <summary>
-    /// Startup check: can we read Sprite assets from bundle files on disk?
-    /// Does not prove in-game LoadAssetSync path — see log tag [SpriteSelfTest].
-    /// </summary>
-    private static void RunSpriteSelfTest()
+    private static void UnloadLoadedModBundles()
     {
-        int tested = 0;
-        int passed = 0;
-
-        foreach (KeyValuePair<string, BundleOverrideEntry> pair in OverrideMap)
+        foreach (KeyValuePair<string, AssetBundle> pair in LoadedBundles)
         {
-            BundleOverrideEntry entry = pair.Value;
-            if (!entry.assetType.Equals("Sprite", StringComparison.OrdinalIgnoreCase))
+            AssetBundle bundle = pair.Value;
+            if (bundle == null)
             {
                 continue;
             }
 
-            tested++;
-            if (!OverrideBundleDirectory.TryGetValue(pair.Key, out string bundleDir))
+            try
             {
-                BundleLog.Error(
-                    $"[SpriteSelfTest] FAIL {entry.label}/{entry.resourceId}: bundle directory missing");
-                continue;
+                bundle.Unload(false);
             }
-
-            if (!TryLoadBundle(bundleDir, entry.bundle, out AssetBundle bundle))
+            catch (Exception ex)
             {
-                BundleLog.Error(
-                    $"[SpriteSelfTest] FAIL {entry.label}/{entry.resourceId}: bundle file missing ({entry.bundle})");
-                continue;
+                BundleLog.VerboseWarn($"AssetBundle.Unload failed for {pair.Key}: {ex.Message}");
             }
-
-            Sprite sprite = LoadObjectAsset(bundle, entry.assetPath, Il2CppType.Of<Sprite>())
-                ?.TryCast<Sprite>();
-            if (sprite == null)
-            {
-                BundleLog.Error(
-                    $"[SpriteSelfTest] FAIL {entry.label}/{entry.resourceId}: " +
-                    $"asset not found at {entry.assetPath}");
-                continue;
-            }
-
-            passed++;
-            BundleLog.Verbose(
-                $"[SpriteSelfTest] OK {entry.label}/{entry.resourceId} " +
-                $"name={sprite.name} size={sprite.rect.width}x{sprite.rect.height}");
         }
 
-        if (tested == 0)
+        LoadedBundles.Clear();
+    }
+
+    private static void RemoveManagedLocator()
+    {
+        if (_locator == null)
         {
-            BundleLog.Verbose("[SpriteSelfTest] skipped (no Sprite entries in manifest)");
+            return;
         }
-        else
+
+        try
         {
-            BundleLog.Verbose($"[SpriteSelfTest] {passed}/{tested} sprite(s) readable from bundle");
+            Addressables.RemoveResourceLocator(_locator.Cast<IResourceLocator>());
         }
+        catch (Exception ex)
+        {
+            BundleLog.VerboseWarn($"RemoveResourceLocator on reload skipped: {ex.Message}");
+        }
+
+        _locator = null;
     }
 
     private static void LoadManifestFrom(string bundleDir, string manifestPath)
@@ -176,46 +222,6 @@ public static class BundleManager
         }
     }
 
-    /// <summary>
-    /// Called from <c>get_IsInitializedAddressable</c> when the native flag is already true.
-    /// Must not re-enter that getter (uses a reentrancy guard and never reads the property).
-    /// Re-registers when Addressables ResourceManager/locators were reset mid-session.
-    /// </summary>
-    public static void EnsureAddressablesRegisteredFromReadyGate()
-    {
-        if (_insideReadyGateRegistration)
-        {
-            return;
-        }
-
-        EnsureInitialized();
-        if (OverrideMap.Count == 0)
-        {
-            return;
-        }
-
-        AddressableManager manager = AddressableManager.Instance;
-        if (manager == null || manager._hashKeys == null)
-        {
-            return;
-        }
-
-        _insideReadyGateRegistration = true;
-        try
-        {
-            if (_addressablesRegistered && IsCatalogHealthy(manager))
-            {
-                return;
-            }
-
-            RegisterWithAddressablesCore(manager);
-        }
-        finally
-        {
-            _insideReadyGateRegistration = false;
-        }
-    }
-
     public static bool IsModAddressableKey(string addressableKey)
     {
         if (string.IsNullOrEmpty(addressableKey))
@@ -223,7 +229,6 @@ public static class BundleManager
             return false;
         }
 
-        EnsureInitialized();
         if (KeyMap.ContainsKey(addressableKey))
         {
             return true;
@@ -610,20 +615,25 @@ public static class BundleManager
 
     private static void PreloadOverrideBundles()
     {
-        var uniqueBundles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (BundleOverrideEntry entry in OverrideMap.Values)
+        // Key by full path so two mods with the same bundle file name both preload.
+        var uniquePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (KeyValuePair<string, BundleOverrideEntry> pair in OverrideMap)
         {
-            if (!string.IsNullOrEmpty(entry.bundle))
+            if (string.IsNullOrEmpty(pair.Value.bundle)
+                || !OverrideBundleDirectory.TryGetValue(pair.Key, out string bundleDir))
             {
-                uniqueBundles.Add(entry.bundle);
+                continue;
             }
-        }
 
-        foreach (string bundleName in uniqueBundles)
-        {
-            if (TryLoadBundleForAnyEntry(bundleName, out _))
+            string path = Path.Combine(bundleDir, pair.Value.bundle);
+            if (!uniquePaths.Add(path))
             {
-                BundleLog.Verbose($"Preloaded mod AssetBundle: {bundleName}");
+                continue;
+            }
+
+            if (TryLoadBundle(bundleDir, pair.Value.bundle, out _))
+            {
+                BundleLog.Verbose($"Preloaded mod AssetBundle: {path}");
             }
         }
     }
@@ -635,7 +645,6 @@ public static class BundleManager
             return false;
         }
 
-        EnsureInitialized();
         foreach (var registered in OverrideMap.Values)
         {
             if (string.Equals(registered.resourceId, resourceId, StringComparison.OrdinalIgnoreCase))
@@ -650,7 +659,6 @@ public static class BundleManager
     public static bool TryLoadUnityObject(string locationKey, Il2CppSystem.Type resourceType, out UnityEngine.Object asset)
     {
         asset = null;
-        EnsureInitialized();
 
         if (string.IsNullOrEmpty(locationKey) || !KeyMap.TryGetValue(locationKey, out BundleOverrideEntry entry))
         {
@@ -677,7 +685,6 @@ public static class BundleManager
     public static bool TryLoadSpriteOverride(string label, string resourceId, out Sprite sprite)
     {
         sprite = null;
-        EnsureInitialized();
 
         if (string.IsNullOrEmpty(label) || string.IsNullOrEmpty(resourceId))
         {
@@ -696,7 +703,6 @@ public static class BundleManager
     public static bool TryLoadSpriteByAddressableKey(string addressableKey, out Sprite sprite)
     {
         sprite = null;
-        EnsureInitialized();
         EnsureAddressablesRegisteredFromReadyGate();
 
         if (!string.IsNullOrEmpty(addressableKey)
@@ -757,42 +763,36 @@ public static class BundleManager
         return sprite != null;
     }
 
-    public static bool TryLoadGameObject(string label, string resourceId, Transform parent, out GameObject instance)
+    /// <summary>
+    /// Loads a GameObject prefab asset from a mod bundle manifest entry without instantiating.
+    /// </summary>
+    public static bool TryLoadGameObjectAsset(string label, string resourceId, out GameObject prefab)
     {
-        instance = null;
-        EnsureInitialized();
+        prefab = null;
 
-        BundleOverrideEntry entry = null;
-        if (!string.IsNullOrEmpty(label)
-            && OverrideMap.TryGetValue($"{label}\0{resourceId}", out entry))
-        {
-            // exact label+id
-        }
-        else
-        {
-            foreach (var registered in OverrideMap.Values)
-            {
-                if (string.Equals(registered.resourceId, resourceId, StringComparison.OrdinalIgnoreCase))
-                {
-                    entry = registered;
-                    break;
-                }
-            }
-        }
-
-        if (entry == null
-            || !entry.assetType.Equals("GameObject", StringComparison.OrdinalIgnoreCase)
+        if (!TryResolveGameObjectEntry(label, resourceId, out BundleOverrideEntry entry)
             || !TryLoadBundleForEntry(entry, out AssetBundle bundle))
         {
             return false;
         }
 
-        GameObject prefab = LoadObjectAsset(bundle, entry.assetPath, Il2CppType.Of<GameObject>())
+        prefab = LoadObjectAsset(bundle, entry.assetPath, Il2CppType.Of<GameObject>())
             ?.TryCast<GameObject>();
         if (prefab == null)
         {
             BundleLog.Error(
-                $"Failed to load GameObject. bundle={entry.bundle}, path={entry.assetPath}");
+                $"Failed to load GameObject asset. bundle={entry.bundle}, path={entry.assetPath}");
+            return false;
+        }
+
+        return true;
+    }
+
+    public static bool TryLoadGameObject(string label, string resourceId, Transform parent, out GameObject instance)
+    {
+        instance = null;
+        if (!TryLoadGameObjectAsset(label, resourceId, out GameObject prefab))
+        {
             return false;
         }
 
@@ -805,10 +805,42 @@ public static class BundleManager
             instance.AddComponent<BundleInstanceTag>();
             BundleLog.Verbose(
                 $"[CustomBundleLoader] Tagged bundle instance " +
-                $"bundle={entry.bundle} asset={entry.assetPath} go={instance.name} " +
+                $"label={label} resourceId={resourceId} go={instance.name} " +
                 $"instanceId={instance.GetInstanceID()}");
         }
         return instance != null;
+    }
+
+    private static bool TryResolveGameObjectEntry(
+        string label,
+        string resourceId,
+        out BundleOverrideEntry entry)
+    {
+        entry = null;
+        if (string.IsNullOrEmpty(resourceId))
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrEmpty(label)
+            && OverrideMap.TryGetValue($"{label}\0{resourceId}", out entry))
+        {
+            return entry.assetType.Equals("GameObject", StringComparison.OrdinalIgnoreCase);
+        }
+
+        foreach (BundleOverrideEntry registered in OverrideMap.Values)
+        {
+            if (!string.Equals(registered.resourceId, resourceId, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            entry = registered;
+            break;
+        }
+
+        return entry != null
+            && entry.assetType.Equals("GameObject", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void EnsureInstanceTagRegistered()
@@ -878,14 +910,6 @@ public static class BundleManager
             ? Il2CppType.Of<Sprite>()
             : Il2CppType.Of<GameObject>();
 
-    private static void EnsureInitialized()
-    {
-        if (!_initialized)
-        {
-            Initialize();
-        }
-    }
-
     private static bool TryLoadBundleForEntry(BundleOverrideEntry entry, out AssetBundle bundle)
     {
         string lookupKey = entry.GetKey();
@@ -908,26 +932,6 @@ public static class BundleManager
         }
 
         return TryLoadBundle(bundleDir, entry.bundle, out bundle);
-    }
-
-    private static bool TryLoadBundleForAnyEntry(string bundleFileName, out AssetBundle bundle)
-    {
-        foreach (var pair in OverrideMap)
-        {
-            if (!string.Equals(pair.Value.bundle, bundleFileName, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            if (OverrideBundleDirectory.TryGetValue(pair.Key, out string bundleDir)
-                && TryLoadBundle(bundleDir, bundleFileName, out bundle))
-            {
-                return true;
-            }
-        }
-
-        bundle = null;
-        return false;
     }
 
     private static bool TryLoadBundle(string bundleDir, string bundleFileName, out AssetBundle bundle)
