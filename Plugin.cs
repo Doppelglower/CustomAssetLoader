@@ -15,6 +15,7 @@ public sealed class Plugin : BasePlugin
     public override void Load()
     {
         Log = base.Log;
+        BundleLog.Bind(Config);
 
         var harmony = new Harmony(GUID);
         BundlePatches.Apply(harmony);

@@ -43,6 +43,7 @@ public static class BundleManager
     /// </summary>
     public static void RequestReload()
     {
+        BundleLog.ReloadConfig();
         _reloadRequested = true;
         BundleLog.Verbose("Bundle reload requested.");
         // Kick processing without reading IsInitializedAddressable (avoids getter re-entry games).
@@ -107,6 +108,7 @@ public static class BundleManager
         EnsureInstanceTagRegistered();
         UnloadLoadedModBundles();
         RemoveManagedLocator();
+        ShaderRemapper.ResetSessionState();
 
         OverrideMap.Clear();
         OverrideBundleDirectory.Clear();
@@ -142,8 +144,8 @@ public static class BundleManager
         }
         else if (OverrideMap.Count > 0)
         {
-            BundleLog.Verbose(
-                $"Reloaded {OverrideMap.Count} bundle override(s) from {manifestCount} manifest(s).");
+            BundleLog.Startup(
+                $"Loaded {OverrideMap.Count} bundle override(s) from {manifestCount} manifest(s).");
             PreloadOverrideBundles();
         }
     }
@@ -679,6 +681,12 @@ public static class BundleManager
             return false;
         }
 
+        GameObject asGo = asset.TryCast<GameObject>();
+        if (asGo != null)
+        {
+            ShaderRemapper.RemapPrefabAsset(asGo);
+        }
+
         return true;
     }
 
@@ -785,6 +793,7 @@ public static class BundleManager
             return false;
         }
 
+        ShaderRemapper.RemapPrefabAsset(prefab);
         return true;
     }
 
@@ -801,6 +810,9 @@ public static class BundleManager
             : UnityEngine.Object.Instantiate(prefab);
         if (instance != null)
         {
+            // Prefab remap may not stick on all instance material slots; re-run on live GO.
+            ShaderRemapper.RemapPrefabAsset(instance);
+
             EnsureInstanceTagRegistered();
             instance.AddComponent<BundleInstanceTag>();
             BundleLog.Verbose(

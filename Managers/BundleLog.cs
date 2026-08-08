@@ -1,12 +1,32 @@
+using BepInEx.Configuration;
+
 namespace CustomBundleLoader.Managers;
 
 /// <summary>
-/// Central logging gate. Errors and one-line milestones always print;
+/// Central logging gate. Errors, Warn, and one-line milestones always print;
 /// everything else requires <see cref="VerboseLog"/>.
+/// <see cref="Startup"/> / <see cref="Loaded"/> — plugin load, bundle reload, catalog ready.
+/// <see cref="Verbose"/> / <see cref="VerboseWarn"/> — shader remap, replaceTex, asset serve, probes.
 /// </summary>
 public static class BundleLog
 {
-    public const bool VerboseLog = false;
+    private static ConfigFile _config = null!;
+
+    private static ConfigEntry<bool> verboseToggle = null!;
+
+    public static bool VerboseLog => verboseToggle.Value;
+
+    public static void Bind(ConfigFile config)
+    {
+        _config = config;
+        verboseToggle = config.Bind(
+            CONFIG_SECTION_LOGGING,
+            CONFIG_VERBOSE_LOG,
+            false,
+            "Emit detailed bundle and shader-remap logs. Reloaded on each bundle reload.");
+    }
+
+    public static void ReloadConfig() => _config.Reload();
 
     public static void Startup(string message) => Plugin.Log.LogInfo(message);
 
