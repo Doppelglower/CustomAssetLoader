@@ -7,7 +7,7 @@ public sealed class BundleOverrideEntry
     public string bundle { get; set; } = string.Empty;
     public string assetPath { get; set; } = string.Empty;
 
-    /// <summary>GameObject or Sprite</summary>
+    /// <summary>GameObject, Sprite, or BattleEffectList</summary>
     public string assetType { get; set; } = "GameObject";
 
     public string GetKey() => $"{label}\0{resourceId}";

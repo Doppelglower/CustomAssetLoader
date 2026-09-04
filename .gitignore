@@ -5,3 +5,6 @@ Release/
 .DS_Store
 Thumbs.db
 Directory.Build.props
+.cursorrules
+dump_latest.txt
+_tmp*

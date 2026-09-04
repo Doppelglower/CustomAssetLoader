@@ -22,6 +22,7 @@ public static class BundleManager
     private static readonly Dictionary<string, string> OverrideBundleDirectory = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, BundleOverrideEntry> KeyMap = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, IResourceLocation> LocationByKey = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, BattleEffectList> InjectedBattleEffectLists = new();
 
     private static bool _reloadRequested;
     private static bool _instanceTagRegistered;
@@ -106,6 +107,7 @@ public static class BundleManager
     private static void PerformFullReload()
     {
         EnsureInstanceTagRegistered();
+        RemoveInjectedBattleEffectLists();
         UnloadLoadedModBundles();
         RemoveManagedLocator();
         ShaderRemapper.ResetSessionState();
@@ -148,6 +150,8 @@ public static class BundleManager
                 $"Loaded {OverrideMap.Count} bundle override(s) from {manifestCount} manifest(s).");
             PreloadOverrideBundles();
         }
+
+        InjectBattleEffectListsIfManagerReady();
     }
 
     private static void UnloadLoadedModBundles()
@@ -238,11 +242,14 @@ public static class BundleManager
 
         foreach (BundleOverrideEntry entry in OverrideMap.Values)
         {
-            if (!string.IsNullOrEmpty(entry.resourceId)
-                && addressableKey.IndexOf(entry.resourceId, StringComparison.OrdinalIgnoreCase) >= 0)
+            if (IsBattleEffectListEntry(entry)
+                || string.IsNullOrEmpty(entry.resourceId)
+                || addressableKey.IndexOf(entry.resourceId, StringComparison.OrdinalIgnoreCase) < 0)
             {
-                return true;
+                continue;
             }
+
+            return true;
         }
 
         return false;
@@ -903,6 +910,12 @@ public static class BundleManager
         out Il2CppSystem.Type resourceType)
     {
         addressableKey = null;
+        resourceType = null;
+        if (IsBattleEffectListEntry(entry))
+        {
+            return false;
+        }
+
         resourceType = ResolveResourceType(entry);
         try
         {
@@ -1007,6 +1020,172 @@ public static class BundleManager
         return null;
     }
 
+    public static bool IsBattleEffectListEntry(BundleOverrideEntry entry) =>
+        entry != null
+        && !string.IsNullOrEmpty(entry.assetType)
+        && entry.assetType.Equals("BattleEffectList", StringComparison.OrdinalIgnoreCase);
+
+    public static void InjectBattleEffectLists(BattleEffectManager manager)
+    {
+        if (manager == null)
+        {
+            return;
+        }
+
+        var next = manager.battleEffectLists_next;
+        if (next == null)
+        {
+            BundleLog.Warn("[BattleEffectList] battleEffectLists_next is null; skip inject.");
+            return;
+        }
+
+        foreach (KeyValuePair<string, BundleOverrideEntry> pair in OverrideMap)
+        {
+            if (!IsBattleEffectListEntry(pair.Value))
+            {
+                continue;
+            }
+
+            if (HasAliveInjectedList(pair.Key, next))
+            {
+                continue;
+            }
+
+            if (!TryLoadBattleEffectList(pair.Value, out BattleEffectList list) || list == null)
+            {
+                BundleLog.Error(
+                    $"[BattleEffectList] load failed: {pair.Value.bundle} {pair.Value.assetPath}");
+                continue;
+            }
+
+            RemapBattleEffectListPrefabs(list);
+            next.Add(list);
+            InjectedBattleEffectLists[pair.Key] = list;
+            BundleLog.Startup(
+                $"[BattleEffectList] injected {list.name} from {pair.Value.assetPath}");
+        }
+    }
+
+    private static void InjectBattleEffectListsIfManagerReady()
+    {
+        try
+        {
+            BattleEffectManager manager = BattleEffectManager.Instance;
+            if (manager != null)
+            {
+                InjectBattleEffectLists(manager);
+            }
+        }
+        catch (Exception ex)
+        {
+            BundleLog.VerboseWarn($"[BattleEffectList] inject skipped: {ex.Message}");
+        }
+    }
+
+    private static void RemoveInjectedBattleEffectLists()
+    {
+        try
+        {
+            BattleEffectManager manager = BattleEffectManager.Instance;
+            var next = manager?.battleEffectLists_next;
+            if (next != null)
+            {
+                foreach (BattleEffectList list in InjectedBattleEffectLists.Values)
+                {
+                    if (list != null)
+                    {
+                        next.Remove(list);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            BundleLog.VerboseWarn($"[BattleEffectList] remove injected skipped: {ex.Message}");
+        }
+
+        InjectedBattleEffectLists.Clear();
+    }
+
+    private static bool HasAliveInjectedList(
+        string mapKey,
+        Il2CppSystem.Collections.Generic.List<BattleEffectList> next)
+    {
+        if (!InjectedBattleEffectLists.TryGetValue(mapKey, out BattleEffectList tracked)
+            || tracked == null)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < next.Count; i++)
+        {
+            if (next[i] == tracked)
+            {
+                return true;
+            }
+        }
+
+        next.Add(tracked);
+        BundleLog.Verbose($"[BattleEffectList] re-added {tracked.name} after list drop.");
+        return true;
+    }
+
+    private static bool TryLoadBattleEffectList(BundleOverrideEntry entry, out BattleEffectList list)
+    {
+        list = null;
+        if (!TryLoadBundleForEntry(entry, out AssetBundle bundle))
+        {
+            return false;
+        }
+
+        UnityEngine.Object asset = LoadObjectAsset(
+            bundle,
+            entry.assetPath,
+            Il2CppType.Of<BattleEffectList>());
+        list = asset?.TryCast<BattleEffectList>();
+        return list != null;
+    }
+
+    private static void RemapBattleEffectListPrefabs(BattleEffectList list)
+    {
+        if (list == null)
+        {
+            return;
+        }
+
+        RemapEffectLabelObjs(list.Effects_Label);
+        if (list.Effects_Ability == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < list.Effects_Ability.Count; i++)
+        {
+            Effect_Ability ability = list.Effects_Ability[i];
+            if (ability != null && ability.effectObj != null)
+            {
+                ShaderRemapper.RemapPrefabAsset(ability.effectObj);
+            }
+        }
+    }
+
+    private static void RemapEffectLabelObjs(Il2CppSystem.Collections.Generic.List<Effect_Label> labels)
+    {
+        if (labels == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < labels.Count; i++)
+        {
+            Effect_Label label = labels[i];
+            if (label != null && label.effectObj != null)
+            {
+                ShaderRemapper.RemapPrefabAsset(label.effectObj);
+            }
+        }
+    }
+
     private static bool TryValidateEntry(BundleOverrideEntry entry, out string error)
     {
         if (entry == null)
@@ -1030,7 +1209,8 @@ public static class BundleManager
         }
 
         if (!entry.assetType.Equals("GameObject", StringComparison.OrdinalIgnoreCase)
-            && !entry.assetType.Equals("Sprite", StringComparison.OrdinalIgnoreCase))
+            && !entry.assetType.Equals("Sprite", StringComparison.OrdinalIgnoreCase)
+            && !IsBattleEffectListEntry(entry))
         {
             error = $"unsupported assetType={entry.assetType}";
             return false;

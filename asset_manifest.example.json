@@ -13,6 +13,13 @@
       "bundle": "__data",
       "assetPath": "Assets/Resources_moved/Sprite/SkillIcon/1080501.png",
       "assetType": "Sprite"
+    },
+    {
+      "label": "BattleEffectList",
+      "resourceId": "EffectList_argalia",
+      "bundle": "battleeffectlist",
+      "assetPath": "assets/prefab/effect/scriptableobject/effectlist_argalia.asset",
+      "assetType": "BattleEffectList"
     }
   ]
 }

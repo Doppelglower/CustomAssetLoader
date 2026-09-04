@@ -19,6 +19,7 @@ public sealed class Plugin : BasePlugin
 
         var harmony = new Harmony(GUID);
         BundlePatches.Apply(harmony);
+        BattleEffectListPatches.Apply(harmony);
         CustomBundleMotionPatches.Apply(harmony);
 
         BundleLog.Loaded($"{PLUGIN_NAME} v{VERSION} loaded.");
