@@ -6,7 +6,7 @@ using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceLocations;
 
-namespace CustomBundleLoader.Patches;
+namespace CustomAssetLoader.Patches.Features;
 
 public static class BundlePatches
 {
@@ -191,7 +191,7 @@ public static class BundlePatches
         BundleManager.EnsureAddressablesRegisteredFromReadyGate();
         bool ready = BundleManager.IsReadyModAddressableKey(keyStr);
         BundleLog.Verbose(
-            $"[CustomBundleLoader] AssetExists key={keyStr} native={__result} → ready={ready}");
+            $"[CustomAssetLoader] AssetExists key={keyStr} native={__result} → ready={ready}");
 
         // Only upgrade false→true for keys we can actually serve; never force a
         // native key to false just because it resembles one of our resourceIds.
@@ -320,12 +320,12 @@ public static class BundlePatches
         BundleManager.EnsureAddressablesRegisteredFromReadyGate();
 
         BundleLog.Verbose(
-            $"[CustomBundleLoader] Direct Instantiate bypass: {addressableKey} setPose={setPose}");
+            $"[CustomAssetLoader] Direct Instantiate bypass: {addressableKey} setPose={setPose}");
 
         if (!BundleManager.TryInstantiateByAddressableKey(addressableKey, parent, out GameObject instance)
             || instance == null)
         {
-            BundleLog.Error($"[CustomBundleLoader] Direct Instantiate FAILED: {addressableKey}");
+            BundleLog.Error($"[CustomAssetLoader] Direct Instantiate FAILED: {addressableKey}");
             return true;
         }
 
@@ -336,7 +336,7 @@ public static class BundlePatches
 
         __result = Addressables.ResourceManager.CreateCompletedOperation(instance, string.Empty);
         BundleLog.Verbose(
-            $"[CustomBundleLoader] Direct Instantiate OK: {addressableKey} go={instance.name}");
+            $"[CustomAssetLoader] Direct Instantiate OK: {addressableKey} go={instance.name}");
 
         return false;
     }

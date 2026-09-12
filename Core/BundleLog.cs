@@ -1,6 +1,6 @@
 using BepInEx.Configuration;
 
-namespace CustomBundleLoader.Managers;
+namespace CustomAssetLoader.Core;
 
 /// <summary>
 /// Central logging gate. Errors, Warn, and one-line milestones always print;

@@ -1,10 +1,10 @@
-using BepInEx;
+﻿using BepInEx;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
-using CustomBundleLoader.Patches;
+using CustomAssetLoader.Patches.Features;
 using HarmonyLib;
 
-namespace CustomBundleLoader;
+namespace CustomAssetLoader;
 
 [BepInPlugin(GUID, PLUGIN_NAME, VERSION)]
 [BepInDependency("Lethe", BepInDependency.DependencyFlags.HardDependency)]
@@ -21,6 +21,7 @@ public sealed class Plugin : BasePlugin
         BundlePatches.Apply(harmony);
         BattleEffectListPatches.Apply(harmony);
         CustomBundleMotionPatches.Apply(harmony);
+        BankPatches.Apply(harmony);
 
         BundleLog.Loaded($"{PLUGIN_NAME} v{VERSION} loaded.");
     }

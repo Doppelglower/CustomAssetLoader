@@ -1,7 +1,8 @@
-global using System;
+﻿global using System;
 global using System.Collections.Generic;
-global using CustomBundleLoader.Models;
-global using CustomBundleLoader.Managers;
-global using static CustomBundleLoader.PluginConfig;
+global using CustomAssetLoader.Core;
+global using CustomAssetLoader.Managers;
+global using CustomAssetLoader.Models;
+global using static CustomAssetLoader.PluginConfig;
 
-namespace CustomBundleLoader;
+namespace CustomAssetLoader;

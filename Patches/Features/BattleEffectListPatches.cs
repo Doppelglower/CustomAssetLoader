@@ -1,7 +1,7 @@
 using System.Reflection;
 using HarmonyLib;
 
-namespace CustomBundleLoader.Patches;
+namespace CustomAssetLoader.Patches.Features;
 
 /// <summary>
 /// Loads manifest <c>assetType=BattleEffectList</c> ScriptableObjects and appends them

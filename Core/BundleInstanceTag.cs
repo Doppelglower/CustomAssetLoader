@@ -1,7 +1,7 @@
 using Il2CppInterop.Runtime.Injection;
 using UnityEngine;
 
-namespace CustomBundleLoader.Managers;
+namespace CustomAssetLoader.Core;
 
 /// <summary>
 /// Runtime-only provenance marker attached exclusively by this plugin's

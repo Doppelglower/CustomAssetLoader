@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.AddressableAssets;
 using Object = UnityEngine.Object;
 
-namespace CustomBundleLoader.Managers;
+namespace CustomAssetLoader.Core;
 
 /// <summary>
 /// Resolve mode=2 OfficialShaderSource tags to a live Shader via Addressables.

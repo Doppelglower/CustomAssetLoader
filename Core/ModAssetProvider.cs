@@ -2,7 +2,7 @@ using Il2CppInterop.Runtime.Injection;
 using UnityEngine.ResourceManagement.ResourceLocations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 
-namespace CustomBundleLoader.Managers;
+namespace CustomAssetLoader.Core;
 
 /// <summary>
 /// Serves mod AssetBundle assets through Addressables.
@@ -21,7 +21,7 @@ public sealed class ModAssetProvider : ResourceProviderBase
         : base(ClassInjector.DerivedConstructorPointer<ModAssetProvider>())
     {
         ClassInjector.DerivedConstructorBody(this);
-        m_ProviderId = "CustomBundleLoader.ModAssetProvider";
+        m_ProviderId = "CustomAssetLoader.ModAssetProvider";
     }
 
     public override void Provide(ProvideHandle provideHandle)
@@ -48,7 +48,7 @@ public sealed class ModAssetProvider : ResourceProviderBase
                 || !BundleManager.TryLoadUnityObject(key, location.ResourceType, out UnityEngine.Object asset)
                 || asset == null)
             {
-                BundleLog.Error($"[CustomBundleLoader] Provide FAILED: {key}");
+                BundleLog.Error($"[CustomAssetLoader] Provide FAILED: {key}");
                 provideHandle.Complete<UnityEngine.Object>(
                     null,
                     false,
@@ -57,7 +57,7 @@ public sealed class ModAssetProvider : ResourceProviderBase
             }
 
             BundleLog.Verbose(
-                $"[CustomBundleLoader] Provide OK: {key} → {asset.name} ({asset.GetIl2CppType().Name})");
+                $"[CustomAssetLoader] Provide OK: {key} → {asset.name} ({asset.GetIl2CppType().Name})");
 
             provideHandle.Complete(asset, true, (Il2CppSystem.Exception)null);
         }

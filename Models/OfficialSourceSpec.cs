@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace CustomBundleLoader.Managers;
+namespace CustomAssetLoader.Models;
 
 /// <summary>
 /// Parsed OfficialShaderSource tag. Grammar:

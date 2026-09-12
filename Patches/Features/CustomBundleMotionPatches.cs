@@ -3,7 +3,7 @@ using HarmonyLib;
 using Spine.Unity;
 using UnityEngine.Playables;
 
-namespace CustomBundleLoader.Patches;
+namespace CustomAssetLoader.Patches.Features;
 
 /// <summary>
 /// Bridges CharacterAppearance.StopMotion's root-speed pause to a real
@@ -135,7 +135,7 @@ public static class CustomBundleMotionPatches
                         ? originalScale
                         : 1f;
                     BundleLog.Verbose(
-                        $"[CustomBundleLoader.SpineSync] PAUSE appearance={appearance.name} " +
+                        $"[CustomAssetLoader.SpineSync] PAUSE appearance={appearance.name} " +
                         $"directorState={director.state} rootSpeed={rootSpeed:F3} " +
                         $"trackTime={entry.TrackTime:F4} savedScale={ForcedPauseScales[id]:F3}");
                 }
@@ -154,7 +154,7 @@ public static class CustomBundleMotionPatches
         catch (Exception ex)
         {
             BundleLog.VerboseWarn(
-                $"[CustomBundleLoader.SpineSync] skipped for {__instance.name}: {ex.Message}");
+                $"[CustomAssetLoader.SpineSync] skipped for {__instance.name}: {ex.Message}");
         }
     }
 
@@ -172,6 +172,6 @@ public static class CustomBundleMotionPatches
 
         ForcedPauseScales.Remove(id);
         BundleLog.Verbose(
-            $"[CustomBundleLoader.SpineSync] RESUME reason={reason} restoredScale={savedScale:F3}");
+            $"[CustomAssetLoader.SpineSync] RESUME reason={reason} restoredScale={savedScale:F3}");
     }
 }

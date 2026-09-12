@@ -11,11 +11,11 @@ using UnityEngine.AddressableAssets.ResourceLocators;
 using UnityEngine.ResourceManagement.ResourceLocations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 
-namespace CustomBundleLoader.Managers;
+namespace CustomAssetLoader.Managers;
 
 public static class BundleManager
 {
-    private const string LocatorId = "CustomBundleLoader.ModBundles";
+    private const string LocatorId = "CustomAssetLoader.ModBundles";
 
     private static readonly Dictionary<string, AssetBundle> LoadedBundles = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, BundleOverrideEntry> OverrideMap = new();
@@ -272,7 +272,7 @@ public static class BundleManager
         if (locationDic != null && locationDic.ContainsKey(addressableKey))
         {
             locationDic.Remove(addressableKey);
-            BundleLog.Verbose($"[CustomBundleLoader] cleared stale cached location: {addressableKey}");
+            BundleLog.Verbose($"[CustomAssetLoader] cleared stale cached location: {addressableKey}");
         }
 
         return true;
@@ -354,7 +354,7 @@ public static class BundleManager
 
         bool ok = TryLoadGameObject(entry.label, entry.resourceId, parent, out instance);
         BundleLog.Verbose(
-            $"[CustomBundleLoader] TryLoadGameObject key={addressableKey} " +
+            $"[CustomAssetLoader] TryLoadGameObject key={addressableKey} " +
             $"bundle={entry.bundle} path={entry.assetPath} ok={ok} " +
             $"go={(instance != null ? instance.name : "null")}");
 
@@ -508,7 +508,7 @@ public static class BundleManager
             if (locationDic.ContainsKey(key))
             {
                 locationDic.Remove(key);
-                BundleLog.Verbose($"[CustomBundleLoader] cleared stale cached location: {key}");
+                BundleLog.Verbose($"[CustomAssetLoader] cleared stale cached location: {key}");
             }
         }
     }
@@ -823,7 +823,7 @@ public static class BundleManager
             EnsureInstanceTagRegistered();
             instance.AddComponent<BundleInstanceTag>();
             BundleLog.Verbose(
-                $"[CustomBundleLoader] Tagged bundle instance " +
+                $"[CustomAssetLoader] Tagged bundle instance " +
                 $"label={label} resourceId={resourceId} go={instance.name} " +
                 $"instanceId={instance.GetInstanceID()}");
         }

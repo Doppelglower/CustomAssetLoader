@@ -1,4 +1,4 @@
-namespace CustomBundleLoader.Models;
+﻿namespace CustomAssetLoader.Models;
 
 public sealed class AssetManifest
 {
