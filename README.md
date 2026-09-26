@@ -1,4 +1,4 @@
-***CustomAssetLoader***
+# CustomAssetLoader
 
 Allows the loading of your own custom bundles completely independent from anything in game (unlike Motions)
 
