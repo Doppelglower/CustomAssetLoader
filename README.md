@@ -34,11 +34,11 @@ Alongside this, each bundle must come with a `asset_manifest.json` file, which c
 }
 ```
 
-Label: The category of the object (i.e abnormalities, personalities, etc etc)
-resourceId: The specific ID that is sent to the game (for custom IDs, you use "SD_Personality" on the label, then input your resourceId)
-bundle: The bundle name within the folder.
-assetPath: The path inside of the bundle that leads to the requested asset.
-assetType: The previous types of GameObject, Sprite, BattleEffectList, etc. Defaults to GameObject.
+- Label: The category of the object (i.e abnormalities, personalities, etc etc)
+- resourceId: The specific ID that is sent to the game (for custom IDs, you use "SD_Personality" on the label, then input your resourceId by putting a nonexistant path i.e 9999_SigmaSogmaApperacne)
+- bundle: The bundle name within the folder.
+- assetPath: The path inside of the bundle that leads to the requested asset.
+- assetType: The previous types of GameObject, Sprite, BattleEffectList, etc. Defaults to GameObject.
 
 **How do I find which Label I need???**
 
