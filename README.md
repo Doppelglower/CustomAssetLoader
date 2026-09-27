@@ -56,11 +56,39 @@ Fawk you. Use immersive plagiarism because its cooler.
 
 # Unity Editor
 
-First things first, if your using one of Doppel's template projects, switch the color space to Gamma. This can be done via navigating to Project Settings -> Player -> Other Settings -> Color Space
+First things first, this guide assumes you have one of Doppel's templates. As such, switch the color space to Gamma. This can be done via navigating to Project Settings -> Player -> Other Settings -> Color Space
 
 Now that you've done that, lets go over what you'll likely see.
 
+![](docs/assets/defaultview.png)
 
+I'll assume you need no introduction to most of the UI elements. If you do, go use Custom Motions, which is much easier and convenient.
 
+Now, let's navigate to the basics. Click the `resources_moved` folder, `prefab`, `SD`, `Abnormality`, and then drag the appearance prefab onto the hierarchy like so:
+
+![](docs/assets/prefabappearance.png)
+
+Great. Now we have the prefab appearance. Here resides all of our VFX, alongside various items like spine objects, pivots, blood effects, mang effects, unit scripts, etc. 
+
+I'll briefly cover some of the materials that should be there.
+
+On the prefab, you should find:
+- A `CharacterApperacneResiver` script, which is required for the game engine to use your appearance properly. Within it's `appearance` slot, set a reference to your prefab/gameobject that it exists under.
+- Depending on the copy of the template, you will find an `AbnormalityAppearnce` script. Every field in there is self explanatory, so I won't bother. Just make sure to fill out every field needed like `Char Info` etc.
+- A `PlayableDirector`, leave it as is (and replace the playable later once you actually begin work)
+- An `Animator`, which you will use when you create a new `Animator Controller` component.
+- The `CharacterAppearanceBlood` script, which allows you to edit various properties of blood on the unit.
+- The `AbnormalityParts` script, which allows for management of differing phases and the like on an abnormality.
+- The `CharacterAppearanceMangController` script, which has a list of `Mang Controllers`. Every Mang VFX needs to have a new mang controller entry that is registered here. Alongside this, the `skill infos` section also allows for activation of mangs on specific Skill IDs.
+- And last but not least, the `CharacterAppearanceUpdateBuffState` script, which allows you to activate effects based on the stack of a buff. Populate the `Active Effect` list with a reference to a VFX prefab in order to activate it.
+
+Within `ScaleAndPositionPivot`, and `PivotForAnim`, you will find:
+- `SpinePivot`, which holds a `SpineRenderer`
+- `SpRenderer`, which holds all the blood renders
+- `DefaultEffectPivot`, which is where VFX should be parented to
+- `CharacterCenterPoint`
+- `CharacterHeightPoint`
+
+Depending on the copy of your template, you may also find other anchor objects. Those are not required, but you may look at them if you wish.
 
 
