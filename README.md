@@ -74,7 +74,7 @@ I'll briefly cover some of the materials that should be there.
 
 On the prefab, you should find:
 - A `CharacterApperacneResiver` script, which is required for the game engine to use your appearance properly. Within it's `appearance` slot, set a reference to your prefab/gameobject that it exists under.
-- Depending on the copy of the template, you will find an `AbnormalityAppearnce` script. Every field in there is self explanatory, so I won't bother. Just make sure to fill out every field needed like `Char Info` etc.
+- Depending on the copy of the template, you will find an `AbnormalityAppearnce` script. Every field in there is self explanatory, so I won't bother. Just make sure to fill out every field needed like `Char Info` and `Motion List` to bind timelines.
 - A `PlayableDirector`, leave it as is (and replace the playable later once you actually begin work)
 - An `Animator`, which you will use when you create a new `Animator Controller` component.
 - The `CharacterAppearanceBlood` script, which allows you to edit various properties of blood on the unit.
@@ -84,11 +84,15 @@ On the prefab, you should find:
 
 Within `ScaleAndPositionPivot`, and `PivotForAnim`, you will find:
 - `SpinePivot`, which holds a `SpineRenderer`
-- `SpRenderer`, which holds all the blood renders
+- `SpRenderer`, which holds all the blood renders and is the unit's Sprite Renderer.
 - `DefaultEffectPivot`, which is where VFX should be parented to
 - `CharacterCenterPoint`
 - `CharacterHeightPoint`
 
 Depending on the copy of your template, you may also find other anchor objects. Those are not required, but you may look at them if you wish.
 
+Navigate back to the `assets` folder, then go to `art`, `qui'lon`, `Animators`, `Phase1`.
 
+Within this folder, you will find the `Animation Controller`. Rename it to match your project. It's state is fine as is.
+
+Next, navigate back to the `qui'lon` folder, then to `Timelines`, and `Phase1`. In here is all the timelines used on the unit.
