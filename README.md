@@ -53,3 +53,14 @@ Labels and resourceId pairs are used in game, so you can either look at existing
 **How do I use shader remapping?**
 
 Fawk you. Use immersive plagiarism because its cooler.
+
+# Unity Editor
+
+First things first, if your using one of Doppel's template projects, switch the color space to Gamma. This can be done via navigating to Project Settings -> Player -> Other Settings -> Color Space
+
+Now that you've done that, lets go over what you'll likely see.
+
+
+
+
+
