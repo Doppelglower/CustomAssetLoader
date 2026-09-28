@@ -96,3 +96,17 @@ Navigate back to the `assets` folder, then go to `art`, `qui'lon`, `Animators`, 
 Within this folder, you will find the `Animation Controller`. Rename it to match your project. It's state is fine as is.
 
 Next, navigate back to the `qui'lon` folder, then to `Timelines`, and `Phase1`. In here is all the timelines used on the unit.
+
+Before doing anything, right click anywhere in the Project window, go to `Create` -> `Animation` -> `AnimationClip`.
+
+Next, double click any of the `TimelineAssets`. You will see a screen like this:
+
+![](docs/assets/timelinewindow.png)
+
+First things first, locate the SpineRenderer on the asset and remove it if you're planning to use Sprite based animation instead of Spine. (Which is what this guide will be going over.)
+
+Once you've killed that pesky SpineRenderer, replace it with an Animation Track by right clicking and selecting Animation Track. Once you've done this, click the prefab that you created earlier in the hierarchy, then, take its `SpRenderer` and drag it into the empty slot on the Animation Track. When it prompts to create an animator, press yes.
+
+Great! We have a basic setup for this. Next, go ahead and drag your newly created Animation Clip onto the Animation Track. Them, double click the Animation Clip to bring up the Animation Preview.
+
+Once you've done that, click the prefab in the hierarchy again, and drag in any sprite. It should create a new `[SpRenderer]: Sprite` asset in the animation, and from there, you can animate as usual, however, you will have no preview.
