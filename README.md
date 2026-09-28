@@ -113,4 +113,9 @@ Once you've done that, click the prefab in the hierarchy again, and drag in any 
 
 **NOTE**: When making a new TimelineAsset, it needs to be added to the Bindings section on the appearance prefab's `PlayableDirector`. Every new motion also needs to exist on the prefab's `CharacterAppearance` script within it's `Motions List`. If the motion has a timeline, add it to the `Timeline Assets`. If you are using Spine instead, go to `Motion Objects` and enable the Spine Anim option.
 
+# Hit checkers, visual effects
+
+In order to add VFX, you must first parent the VFX to the prefab's DefaultEffectPivot transform. Once that's done, the VFX parent object must have the script Character Attack Effect. On said script, you must link the `This Particle` field to the particlesystem. Once that's done, navigate back to the TimelineAsset, then, right click the `Effect Activate Timeline Track`'s track -> `Add from Character Attack Effect` -> Your VFX. Scale and position as needed.
+
+For hit checkers, you must simply right click the `Skill Give Timing Track`, and select from the list of adds. Alternatively, copy paste an existing give damage timing from the preset TimelineAssets.
 
