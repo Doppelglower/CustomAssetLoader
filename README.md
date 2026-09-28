@@ -110,3 +110,7 @@ Once you've killed that pesky SpineRenderer, replace it with an Animation Track 
 Great! We have a basic setup for this. Next, go ahead and drag your newly created Animation Clip onto the Animation Track. Them, double click the Animation Clip to bring up the Animation Preview.
 
 Once you've done that, click the prefab in the hierarchy again, and drag in any sprite. It should create a new `[SpRenderer]: Sprite` asset in the animation, and from there, you can animate as usual, however, you will have no preview.
+
+**NOTE**: When making a new TimelineAsset, it needs to be added to the Bindings section on the appearance prefab's `PlayableDirector`. Every new motion also needs to exist on the prefab's `CharacterAppearance` script within it's `Motions List`. If the motion has a timeline, add it to the `Timeline Assets`. If you are using Spine instead, go to `Motion Objects` and enable the Spine Anim option.
+
+
