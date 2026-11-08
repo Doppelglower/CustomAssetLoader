@@ -16,25 +16,25 @@ namespace CustomAssetLoader.Managers;
 
 public static class BundleManager
 {
-    private const string LocatorId = "CustomAssetLoader.ModBundles";
+    public const string LocatorId = "CustomAssetLoader.ModBundles";
 
-    private static readonly Dictionary<string, AssetBundle> LoadedBundles = new(StringComparer.OrdinalIgnoreCase);
-    private static readonly Dictionary<string, BundleOverrideEntry> OverrideMap = new();
-    private static readonly Dictionary<string, string> OverrideBundleDirectory = new(StringComparer.OrdinalIgnoreCase);
-    private static readonly Dictionary<string, BundleOverrideEntry> KeyMap = new(StringComparer.OrdinalIgnoreCase);
-    private static readonly Dictionary<string, IResourceLocation> LocationByKey = new(StringComparer.OrdinalIgnoreCase);
-    private static readonly Dictionary<string, BattleEffectList> InjectedBattleEffectLists = new();
+    public static Dictionary<string, AssetBundle> LoadedBundles = new(StringComparer.OrdinalIgnoreCase);
+    public static Dictionary<string, BundleOverrideEntry> OverrideMap = new();
+    public static Dictionary<string, string> OverrideBundleDirectory = new(StringComparer.OrdinalIgnoreCase);
+    public static Dictionary<string, BundleOverrideEntry> KeyMap = new(StringComparer.OrdinalIgnoreCase);
+    public static Dictionary<string, IResourceLocation> LocationByKey = new(StringComparer.OrdinalIgnoreCase);
+    public static Dictionary<string, BattleEffectList> InjectedBattleEffectLists = new();
 
-    private static bool _reloadRequested;
-    private static bool _instanceTagRegistered;
-    private static bool _addressablesRegistered;
+    public static bool _reloadRequested;
+    public static bool _instanceTagRegistered;
+    public static bool _addressablesRegistered;
     /// <summary>
     /// Guards the whole ready-gate critical section (pending reload + catalog register + warmup).
     /// Nested calls from Addressables APIs that re-enter <c>IsInitializedAddressable</c> must no-op.
     /// </summary>
-    private static bool _insideReadyGateCriticalSection;
-    private static ModAssetProvider _provider;
-    private static ResourceLocationMap _locator;
+    public static bool _insideReadyGateCriticalSection;
+    public static ModAssetProvider _provider;
+    public static ResourceLocationMap _locator;
 
     public static int OverrideCount => OverrideMap.Count;
 
@@ -61,7 +61,7 @@ public static class BundleManager
         TryProcessReloadAndRegister();
     }
 
-    private static void TryProcessReloadAndRegister()
+    public static void TryProcessReloadAndRegister()
     {
         if (_insideReadyGateCriticalSection)
         {
@@ -105,7 +105,7 @@ public static class BundleManager
     /// Unload previous mod bundles, clear maps/locator state, rescan manifests, preload bundles.
     /// Does not register Addressables; caller does that when the manager is ready.
     /// </summary>
-    private static void PerformFullReload()
+    public static void PerformFullReload()
     {
         EnsureInstanceTagRegistered();
         RemoveInjectedBattleEffectLists();
@@ -155,7 +155,7 @@ public static class BundleManager
         InjectBattleEffectListsIfManagerReady();
     }
 
-    private static void UnloadLoadedModBundles()
+    public static void UnloadLoadedModBundles()
     {
         TimelineSfxLibrary.Clear();
         foreach (KeyValuePair<string, AssetBundle> pair in LoadedBundles)
@@ -179,7 +179,7 @@ public static class BundleManager
         LoadedBundles.Clear();
     }
 
-    private static void RemoveManagedLocator()
+    public static void RemoveManagedLocator()
     {
         if (_locator == null)
         {
@@ -198,7 +198,7 @@ public static class BundleManager
         _locator = null;
     }
 
-    private static void LoadManifestFrom(string bundleDir, string manifestPath)
+    public static void LoadManifestFrom(string bundleDir, string manifestPath)
     {
         try
         {
@@ -363,7 +363,7 @@ public static class BundleManager
         return ok;
     }
 
-    private static void RegisterWithAddressablesCore(AddressableManager manager)
+    public static void RegisterWithAddressablesCore(AddressableManager manager)
     {
         if (OverrideMap.Count == 0)
         {
@@ -454,7 +454,7 @@ public static class BundleManager
         }
     }
 
-    private static bool _nativePipelineWarmedUp;
+    public static bool _nativePipelineWarmedUp;
 
     /// <summary>
     /// One-shot warm-up: resolve each mod Sprite key through the real Addressables
@@ -462,7 +462,7 @@ public static class BundleManager
     /// must always run so provider resolution and locator order are established before
     /// gameplay can cache official IResourceLocations in _locationDicByKey.
     /// </summary>
-    private static void WarmupNativeSpritePipeline()
+    public static void WarmupNativeSpritePipeline()
     {
         if (_nativePipelineWarmedUp)
         {
@@ -496,7 +496,7 @@ public static class BundleManager
         }
     }
 
-    private static void ClearStaleLocationsForAllModKeys()
+    public static void ClearStaleLocationsForAllModKeys()
     {
         AddressableManager manager = AddressableManager.Instance;
         var locationDic = manager?._locationDicByKey;
@@ -515,7 +515,7 @@ public static class BundleManager
         }
     }
 
-    private static void LogLocatorOrder()
+    public static void LogLocatorOrder()
     {
         if (!BundleLog.VerboseLog)
         {
@@ -548,7 +548,7 @@ public static class BundleManager
     /// LoadAssetAsync iterates locators in list order and the first one that resolves
     /// the key wins, so front insertion lets mod entries override official catalog keys.
     /// </summary>
-    private static void AddLocatorWithPriority(IResourceLocator locator)
+    public static void AddLocatorWithPriority(IResourceLocator locator)
     {
         try
         {
@@ -568,7 +568,7 @@ public static class BundleManager
         Addressables.AddResourceLocator(locator, null, null);
     }
 
-    private static bool IsCatalogHealthy(AddressableManager manager)
+    public static bool IsCatalogHealthy(AddressableManager manager)
     {
         if (KeyMap.Count == 0 || manager._hashKeys == null)
         {
@@ -592,7 +592,7 @@ public static class BundleManager
         return IsLocatorInstalled();
     }
 
-    private static bool IsLocatorInstalled()
+    public static bool IsLocatorInstalled()
     {
         if (_locator == null)
         {
@@ -624,7 +624,7 @@ public static class BundleManager
         return false;
     }
 
-    private static void PreloadOverrideBundles()
+    public static void PreloadOverrideBundles()
     {
         // Key by full path so two mods with the same bundle file name both preload.
         var uniquePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -758,7 +758,7 @@ public static class BundleManager
     public static bool TryGetModAddressableKey(string key, out string addressableKey) =>
         TryGetModAddressableKey((Il2CppSystem.Object)key, out addressableKey);
 
-    private static bool TryLoadSpriteFromEntry(
+    public static bool TryLoadSpriteFromEntry(
         BundleOverrideEntry entry,
         string mapKey,
         out Sprite sprite)
@@ -849,7 +849,7 @@ public static class BundleManager
         return instance != null;
     }
 
-    private static bool TryResolveGameObjectEntry(
+    public static bool TryResolveGameObjectEntry(
         string label,
         string resourceId,
         out BundleOverrideEntry entry)
@@ -881,7 +881,7 @@ public static class BundleManager
             && entry.assetType.Equals("GameObject", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static void EnsureInstanceTagRegistered()
+    public static void EnsureInstanceTagRegistered()
     {
         if (_instanceTagRegistered)
         {
@@ -892,7 +892,7 @@ public static class BundleManager
         _instanceTagRegistered = true;
     }
 
-    private static void EnsureProviderRegistered()
+    public static void EnsureProviderRegistered()
     {
         _provider ??= new ModAssetProvider();
         try
@@ -923,7 +923,7 @@ public static class BundleManager
         }
     }
 
-    private static bool TryBuildAddressableKey(
+    public static bool TryBuildAddressableKey(
         BundleOverrideEntry entry,
         out string addressableKey,
         out Il2CppSystem.Type resourceType)
@@ -938,6 +938,12 @@ public static class BundleManager
         resourceType = ResolveResourceType(entry);
         try
         {
+            if (IsCharacterFollowTimelineEntry(entry))
+            {
+                addressableKey = entry.resourceId;
+                return !string.IsNullOrEmpty(addressableKey);
+            }
+
             addressableKey = ResourceKeyBuilder.BuildKey(entry.label, entry.resourceId, resourceType);
             return !string.IsNullOrEmpty(addressableKey);
         }
@@ -949,12 +955,28 @@ public static class BundleManager
         }
     }
 
-    private static Il2CppSystem.Type ResolveResourceType(BundleOverrideEntry entry) =>
-        entry.assetType.Equals("Sprite", StringComparison.OrdinalIgnoreCase)
-            ? Il2CppType.Of<Sprite>()
-            : Il2CppType.Of<GameObject>();
+    public static Il2CppSystem.Type ResolveResourceType(BundleOverrideEntry entry)
+    {
+        if (entry.assetType.Equals("Sprite", StringComparison.OrdinalIgnoreCase))
+        {
+            return Il2CppType.Of<Sprite>();
+        }
 
-    private static bool TryLoadBundleForEntry(BundleOverrideEntry entry, out AssetBundle bundle)
+        if (IsCharacterFollowTimelineEntry(entry))
+        {
+            return Il2CppSystem.Type.GetType(
+                       "CharacterFollowTimelineAssets, Assembly-CSharp")
+                   ?? Il2CppType.Of<ScriptableObject>();
+        }
+
+        return Il2CppType.Of<GameObject>();
+    }
+
+    public static bool IsCharacterFollowTimelineEntry(BundleOverrideEntry entry) =>
+        entry != null
+        && entry.assetType.Equals("CharacterFollowTimelineAssets", StringComparison.OrdinalIgnoreCase);
+
+    public static bool TryLoadBundleForEntry(BundleOverrideEntry entry, out AssetBundle bundle)
     {
         string lookupKey = entry.GetKey();
         if (!OverrideBundleDirectory.TryGetValue(lookupKey, out string bundleDir))
@@ -978,7 +1000,7 @@ public static class BundleManager
         return TryLoadBundle(bundleDir, entry.bundle, out bundle);
     }
 
-    private static bool TryLoadBundle(string bundleDir, string bundleFileName, out AssetBundle bundle)
+    public static bool TryLoadBundle(string bundleDir, string bundleFileName, out AssetBundle bundle)
     {
         string cacheKey = Path.Combine(bundleDir, bundleFileName);
         if (LoadedBundles.TryGetValue(cacheKey, out bundle))
@@ -1013,7 +1035,7 @@ public static class BundleManager
         return true;
     }
 
-    private static bool TryGetBundleCacheKey(BundleOverrideEntry entry, out string cacheKey)
+    public static bool TryGetBundleCacheKey(BundleOverrideEntry entry, out string cacheKey)
     {
         cacheKey = null;
         if (entry == null || string.IsNullOrEmpty(entry.bundle))
@@ -1043,7 +1065,7 @@ public static class BundleManager
         return true;
     }
 
-    private static UnityEngine.Object LoadObjectAsset(AssetBundle bundle, string assetPath, Il2CppSystem.Type type)
+    public static UnityEngine.Object LoadObjectAsset(AssetBundle bundle, string assetPath, Il2CppSystem.Type type)
     {
         // Unity lowercases internal bundle paths at build time; normalize so manifest
         // can use convenient mixed-case project paths without duplicate-key ambiguity.
@@ -1124,7 +1146,7 @@ public static class BundleManager
         }
     }
 
-    private static void InjectBattleEffectListsIfManagerReady()
+    public static void InjectBattleEffectListsIfManagerReady()
     {
         try
         {
@@ -1140,7 +1162,7 @@ public static class BundleManager
         }
     }
 
-    private static void RemoveInjectedBattleEffectLists()
+    public static void RemoveInjectedBattleEffectLists()
     {
         try
         {
@@ -1165,7 +1187,7 @@ public static class BundleManager
         InjectedBattleEffectLists.Clear();
     }
 
-    private static bool HasAliveInjectedList(
+    public static bool HasAliveInjectedList(
         string mapKey,
         Il2CppSystem.Collections.Generic.List<BattleEffectList> next)
     {
@@ -1188,7 +1210,7 @@ public static class BundleManager
         return true;
     }
 
-    private static bool TryLoadBattleEffectList(BundleOverrideEntry entry, out BattleEffectList list)
+    public static bool TryLoadBattleEffectList(BundleOverrideEntry entry, out BattleEffectList list)
     {
         list = null;
         if (!TryLoadBundleForEntry(entry, out AssetBundle bundle))
@@ -1204,7 +1226,7 @@ public static class BundleManager
         return list != null;
     }
 
-    private static void RemapBattleEffectListPrefabs(BattleEffectList list)
+    public static void RemapBattleEffectListPrefabs(BattleEffectList list)
     {
         if (list == null)
         {
@@ -1227,7 +1249,7 @@ public static class BundleManager
         }
     }
 
-    private static void RemapEffectLabelObjs(Il2CppSystem.Collections.Generic.List<Effect_Label> labels)
+    public static void RemapEffectLabelObjs(Il2CppSystem.Collections.Generic.List<Effect_Label> labels)
     {
         if (labels == null)
         {
@@ -1244,7 +1266,7 @@ public static class BundleManager
         }
     }
 
-    private static bool TryValidateEntry(BundleOverrideEntry entry, out string error)
+    public static bool TryValidateEntry(BundleOverrideEntry entry, out string error)
     {
         if (entry == null)
         {
@@ -1268,6 +1290,7 @@ public static class BundleManager
 
         if (!entry.assetType.Equals("GameObject", StringComparison.OrdinalIgnoreCase)
             && !entry.assetType.Equals("Sprite", StringComparison.OrdinalIgnoreCase)
+            && !entry.assetType.Equals("CharacterFollowTimelineAssets", StringComparison.OrdinalIgnoreCase)
             && !IsBattleEffectListEntry(entry))
         {
             error = $"unsupported assetType={entry.assetType}";
