@@ -47,6 +47,15 @@
     </Reference>
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="$(LimbusCompanyFolder)\BepInEx\plugins\ModularSkillScripts.dll">
+      <HintPath>%(Identity)</HintPath>
+    </Reference>
+    <Reference Include="$(LimbusCompanyFolder)\BepInEx\plugins\Lethe.dll">
+      <HintPath>%(Identity)</HintPath>
+    </Reference>
+  </ItemGroup>
+
   <Target Name="CopyFile" AfterTargets="build">
     <Message Text="Copying BIE files..." Importance="high" />
     <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFiles="$(LimbusCompanyFolder)\BepInEx\plugins\$(AssemblyName).dll" />
